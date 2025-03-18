@@ -1,0 +1,3 @@
+#!/bin/bash
+PACKAGES=("angular" "angular-material" "core" "examples" "examples-app" "examples-react" "material-renderers" "react" "vanilla-renderers" "vue" "vue-vanilla" "vue-vuetify")
+for pkg in "${PACKAGES[@]}"; do find . -type f -name "*.ts" -o -name "*.tsx" -o -name "*.vue" -o -name "*.md" | xargs sed -i "" "s|from '@jsonforms/$pkg'|from '@mosaic-avantos/jsonforms-$pkg'|g"; find . -type f -name "*.ts" -o -name "*.tsx" -o -name "*.vue" -o -name "*.md" | xargs sed -i "" "s|\"@jsonforms/$pkg\"|\"@mosaic-avantos/jsonforms-$pkg\"|g"; find . -type f -name "package.json" | xargs sed -i "" "s|\"@jsonforms/$pkg\"|\"@mosaic-avantos/jsonforms-$pkg\"|g"; done
