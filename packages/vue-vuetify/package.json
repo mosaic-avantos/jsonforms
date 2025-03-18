@@ -1,6 +1,6 @@
 {
-  "name": "@jsonforms/vue-vuetify",
-  "version": "3.5.2-alpha.0",
+  "name": "@mosaic-avantos/jsonforms-vue-vuetify",
+  "version": "3.5.1",
   "description": "Vue Vuetify renderers for JSON Forms",
   "repository": "https://github.com/eclipsesource/jsonforms",
   "bugs": "https://github.com/eclipsesource/jsonforms/issues",
@@ -58,8 +58,8 @@
     "type-check": "vue-tsc --build --force"
   },
   "peerDependencies": {
-    "@jsonforms/core": "3.5.2-alpha.0",
-    "@jsonforms/vue": "3.5.2-alpha.0",
+    "@mosaic-avantos/jsonforms-core": "3.5.2",
+    "@mosaic-avantos/jsonforms-vue": "3.5.2",
     "ajv": "^8.6.1",
     "dayjs": "^1.10.6",
     "lodash": "^4.17.21",
@@ -69,10 +69,10 @@
   },
   "devDependencies": {
     "@fortawesome/fontawesome-free": "^6.5.2",
-    "@jsonforms/core": "workspace:*",
-    "@jsonforms/examples": "workspace:*",
-    "@jsonforms/vue": "workspace:*",
     "@mdi/font": "^7.4.47",
+    "@mosaic-avantos/jsonforms-core": "workspace:*",
+    "@mosaic-avantos/jsonforms-examples": "workspace:*",
+    "@mosaic-avantos/jsonforms-vue": "workspace:*",
     "@rushstack/eslint-patch": "^1.8.0",
     "@tsconfig/node20": "^20.1.4",
     "@types/jsdom": "^21.1.6",

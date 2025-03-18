@@ -122,7 +122,7 @@ importers:
       '@angular/forms':
         specifier: ^18.0.0
         version: 18.2.13(@angular/common@18.2.13(@angular/core@18.2.13(rxjs@6.6.7)(zone.js@0.14.10))(rxjs@6.6.7))(@angular/core@18.2.13(rxjs@6.6.7)(zone.js@0.14.10))(@angular/platform-browser@18.2.13(@angular/animations@18.2.13(@angular/core@18.2.13(rxjs@6.6.7)(zone.js@0.14.10)))(@angular/common@18.2.13(@angular/core@18.2.13(rxjs@6.6.7)(zone.js@0.14.10))(rxjs@6.6.7))(@angular/core@18.2.13(rxjs@6.6.7)(zone.js@0.14.10)))(rxjs@6.6.7)
-      '@jsonforms/core':
+      '@mosaic-avantos/jsonforms-core':
         specifier: workspace:*
         version: link:../core
       '@typescript-eslint/eslint-plugin':
@@ -243,13 +243,13 @@ importers:
       '@babel/plugin-proposal-optional-chaining':
         specifier: ^7.16.5
         version: 7.21.0(@babel/core@7.25.2)
-      '@jsonforms/angular':
+      '@mosaic-avantos/jsonforms-angular':
         specifier: workspace:*
         version: link:../angular
-      '@jsonforms/core':
+      '@mosaic-avantos/jsonforms-core':
         specifier: workspace:*
         version: link:../core
-      '@jsonforms/examples':
+      '@mosaic-avantos/jsonforms-examples':
         specifier: workspace:*
         version: link:../examples
       '@ngtools/webpack':
@@ -470,7 +470,7 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
     devDependencies:
-      '@jsonforms/core':
+      '@mosaic-avantos/jsonforms-core':
         specifier: workspace:*
         version: link:../core
       '@types/node':
@@ -533,13 +533,13 @@ importers:
 
   packages/examples-react:
     dependencies:
-      '@jsonforms/core':
+      '@mosaic-avantos/jsonforms-core':
         specifier: workspace:*
         version: link:../core
-      '@jsonforms/examples':
+      '@mosaic-avantos/jsonforms-examples':
         specifier: workspace:*
         version: link:../examples
-      '@jsonforms/react':
+      '@mosaic-avantos/jsonforms-react':
         specifier: workspace:*
         version: link:../react
       '@mui/material':
@@ -625,10 +625,10 @@ importers:
       '@emotion/styled':
         specifier: ^11.3.0
         version: 11.11.5(@emotion/react@11.11.4(@types/react@17.0.80)(react@17.0.2))(@types/react@17.0.80)(react@17.0.2)
-      '@jsonforms/core':
+      '@mosaic-avantos/jsonforms-core':
         specifier: workspace:*
         version: link:../core
-      '@jsonforms/react':
+      '@mosaic-avantos/jsonforms-react':
         specifier: workspace:*
         version: link:../react
       '@mui/icons-material':
@@ -767,7 +767,7 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
     devDependencies:
-      '@jsonforms/core':
+      '@mosaic-avantos/jsonforms-core':
         specifier: workspace:*
         version: link:../core
       '@rollup/plugin-alias':
@@ -882,10 +882,10 @@ importers:
       '@istanbuljs/nyc-config-typescript':
         specifier: ^1.0.2
         version: 1.0.2(nyc@15.1.0)
-      '@jsonforms/core':
+      '@mosaic-avantos/jsonforms-core':
         specifier: workspace:*
         version: link:../core
-      '@jsonforms/react':
+      '@mosaic-avantos/jsonforms-react':
         specifier: workspace:*
         version: link:../react
       '@rollup/plugin-commonjs':
@@ -1021,7 +1021,7 @@ importers:
       '@babel/preset-typescript':
         specifier: ^7.9.0
         version: 7.24.1(@babel/core@7.24.5)
-      '@jsonforms/core':
+      '@mosaic-avantos/jsonforms-core':
         specifier: workspace:*
         version: link:../core
       '@rollup/plugin-alias':
@@ -1136,10 +1136,10 @@ importers:
       '@babel/preset-typescript':
         specifier: ^7.9.0
         version: 7.24.1(@babel/core@7.24.5)
-      '@jsonforms/core':
+      '@mosaic-avantos/jsonforms-core':
         specifier: workspace:*
         version: link:../core
-      '@jsonforms/vue':
+      '@mosaic-avantos/jsonforms-vue':
         specifier: workspace:*
         version: link:../vue
       '@types/chai':
@@ -1250,18 +1250,18 @@ importers:
       '@fortawesome/fontawesome-free':
         specifier: ^6.5.2
         version: 6.6.0
-      '@jsonforms/core':
-        specifier: workspace:*
-        version: link:../core
-      '@jsonforms/examples':
-        specifier: workspace:*
-        version: link:../examples
-      '@jsonforms/vue':
-        specifier: workspace:*
-        version: link:../vue
       '@mdi/font':
         specifier: ^7.4.47
         version: 7.4.47
+      '@mosaic-avantos/jsonforms-core':
+        specifier: workspace:*
+        version: link:../core
+      '@mosaic-avantos/jsonforms-examples':
+        specifier: workspace:*
+        version: link:../examples
+      '@mosaic-avantos/jsonforms-vue':
+        specifier: workspace:*
+        version: link:../vue
       '@rushstack/eslint-patch':
         specifier: ^1.8.0
         version: 1.10.4
