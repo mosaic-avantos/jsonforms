@@ -1,0 +1,139 @@
+{
+  "name": "@mosaic-avantos/jsonforms-reshaped-renderers",
+  "version": "3.5.2-alpha.1",
+  "description": "Reshaped Renderer Set for JSON Forms",
+  "repository": "https://github.com/eclipsesource/jsonforms",
+  "bugs": "https://github.com/eclipsesource/jsonforms/issues",
+  "homepage": "http://jsonforms.io/",
+  "license": "MIT",
+  "directories": {
+    "example": "example",
+    "src": "src"
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "keywords": [
+    "reshaped",
+    "renderer",
+    "form",
+    "forms",
+    "json",
+    "jsonforms",
+    "frontend",
+    "generator",
+    "input",
+    "renderengine",
+    "jsonschema",
+    "schema",
+    "uischema",
+    "layout",
+    "customization"
+  ],
+  "main": "lib/jsonforms-react-reshaped.cjs.js",
+  "module": "lib/jsonforms-react-reshaped.esm.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "rollup -c rollup.config.js",
+    "build:examples-app": "rollup -c rollup.example.config.js",
+    "dev": "webpack-dev-server --config webpack/webpack.dev.js",
+    "clean": "rimraf lib coverage dist .nyc_output example/dist 2> /dev/null",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "test": "jest --no-cache",
+    "test-cov": "jest --no-cache --coverage",
+    "report": "nyc report --reporter=html",
+    "doc": "typedoc --name 'JSON Forms React Reshaped Renderers' --excludeExternals --out docs src",
+    "tsc": "tsc --build tsconfig.json"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js"
+    ],
+    "transform": {
+      "^.+\\.(ts|tsx)$": "ts-jest"
+    },
+    "testEnvironment": "jsdom",
+    "testMatch": [
+      "**/test/**/*.test.tsx",
+      "**/test/**.test.ts"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/dist/"
+    ],
+    "globals": {
+      "ts-jest": {
+        "tsconfig": "tsconfig.test.json"
+      }
+    }
+  },
+  "nyc": {
+    "reporter": [
+      "lcov",
+      "text-summary"
+    ]
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
+  },
+  "peerDependencies": {
+    "@mosaic-avantos/jsonforms-core": "3.5.2-alpha.1",
+    "@mosaic-avantos/jsonforms-react": "3.5.2-alpha.1",
+    "lucide-react": "^0.263.1",
+    "react": "^16.12.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
+    "reshaped": "^3.4.1"
+  },
+  "devDependencies": {
+    "@mosaic-avantos/jsonforms-core": "workspace:*",
+    "@mosaic-avantos/jsonforms-react": "workspace:*",
+    "@rollup/plugin-commonjs": "^23.0.3",
+    "@rollup/plugin-json": "^5.0.2",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-replace": "^5.0.1",
+    "@types/enzyme": "^3.10.3",
+    "@types/react": "^17.0.24",
+    "@types/react-dom": "^17.0.9",
+    "@typescript-eslint/eslint-plugin": "^5.54.1",
+    "@typescript-eslint/parser": "^5.54.1",
+    "@wojtekmaj/enzyme-adapter-react-17": "^0.6.7",
+    "copy-webpack-plugin": "^5.0.5",
+    "css-loader": "^6.8.1",
+    "enzyme": "^3.11.0",
+    "eslint": "^8.56.0",
+    "html-webpack-plugin": "^5.5.3",
+    "style-loader": "^3.3.3",
+    "eslint-config-prettier": "^8.7.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-react": "^7.32.2",
+    "jest": "^27.5.1",
+    "jsdom": "^22.0.0",
+    "jsdom-global": "^3.0.2",
+    "nyc": "^15.1.0",
+    "prettier": "^2.8.4",
+    "lucide-react": "^0.263.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "reshaped": "^3.4.1",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.78.0",
+    "rollup-plugin-cleanup": "^3.2.1",
+    "rollup-plugin-copy": "^3.4.0",
+    "rollup-plugin-import-css": "^3.3.1",
+    "rollup-plugin-typescript2": "^0.34.1",
+    "rollup-plugin-visualizer": "^5.4.1",
+    "source-map-loader": "^0.2.4",
+    "ts-jest": "^27.1.4",
+    "ts-loader": "^9.5.1",
+    "tslib": "^2.5.0",
+    "typedoc": "~0.25.3",
+    "typescript": "~5.5.0",
+    "webpack": "^5.78.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.1"
+  }
+}
