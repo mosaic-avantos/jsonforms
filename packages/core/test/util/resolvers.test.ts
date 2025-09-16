@@ -225,6 +225,117 @@ test('resolveSchema - resolves schema with encoded characters', (t) => {
   t.is(resolveSchema(schema, '#/properties/foo / bar', schema), undefined);
 });
 
+const createConditionalSchema = () => ({
+  type: 'object',
+  properties: {
+    select: {
+      type: 'string',
+      enum: ['option-1', 'option-2'],
+    },
+  },
+  allOf: [
+    {
+      if: {
+        properties: {
+          select: { const: 'option-1' },
+        },
+      },
+      then: {
+        properties: {
+          multi: {
+            type: 'array',
+            avantos_type: 'multi-select',
+            items: {
+              type: 'string',
+              enum: ['option-1', 'option-2', 'option-3'],
+            },
+          },
+        },
+      },
+    },
+    {
+      if: {
+        properties: {
+          select: { const: 'option-2' },
+        },
+      },
+      then: {
+        properties: {
+          multi: {
+            type: 'array',
+            avantos_type: 'checkbox-group',
+            items: {
+              type: 'string',
+              enum: ['option-4', 'option-5', 'option-6'],
+            },
+          },
+        },
+      },
+    },
+  ],
+});
+
+test('resolveSchema - context-aware resolution with allOf conditionals (option-2)', (t) => {
+  const schema = createConditionalSchema();
+  const data = { select: 'option-2' };
+  const resolvedSchema = resolveSchema(
+    schema,
+    '#/properties/multi',
+    schema,
+    data
+  );
+
+  t.is(
+    (resolvedSchema as any).avantos_type,
+    'checkbox-group',
+    'Should resolve to checkbox-group when select=option-2'
+  );
+  t.deepEqual(
+    (resolvedSchema as any).items.enum,
+    ['option-4', 'option-5', 'option-6'],
+    'Should have correct enum values for option-2'
+  );
+});
+
+test('resolveSchema - context-aware resolution with allOf conditionals (option-1)', (t) => {
+  const schema = createConditionalSchema();
+  const data = { select: 'option-1' };
+  const resolvedSchema = resolveSchema(
+    schema,
+    '#/properties/multi',
+    schema,
+    data
+  );
+
+  t.is(
+    (resolvedSchema as any).avantos_type,
+    'multi-select',
+    'Should resolve to multi-select when select=option-1'
+  );
+  t.deepEqual(
+    (resolvedSchema as any).items.enum,
+    ['option-1', 'option-2', 'option-3'],
+    'Should have correct enum values for option-1'
+  );
+});
+
+test('resolveSchema - context-aware resolution with allOf conditionals (no data)', (t) => {
+  const schema = createConditionalSchema();
+  const resolvedSchema = resolveSchema(schema, '#/properties/multi', schema);
+
+  t.truthy(resolvedSchema, 'Should resolve a schema even without currentData');
+  t.is(
+    resolvedSchema.type,
+    'array',
+    'Should resolve to array type without data (first match)'
+  );
+  t.deepEqual(
+    (resolvedSchema as any).items.enum,
+    ['option-1', 'option-2', 'option-3'],
+    'Should have correct enum values for no data (first match)'
+  );
+});
+
 test('resolveData - resolves data with % characters', (t) => {
   const data = {
     'foo%': '123',
