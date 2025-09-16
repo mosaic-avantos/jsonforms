@@ -225,6 +225,107 @@ test('resolveSchema - resolves schema with encoded characters', (t) => {
   t.is(resolveSchema(schema, '#/properties/foo / bar', schema), undefined);
 });
 
+test('resolveSchema - context-aware resolution with allOf conditionals', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      select: {
+        type: 'string',
+        enum: ['option-1', 'option-2'],
+      },
+    },
+    allOf: [
+      {
+        if: {
+          properties: {
+            select: { const: 'option-1' },
+          },
+        },
+        then: {
+          properties: {
+            multi: {
+              type: 'array',
+              avantos_type: 'multi-select',
+              items: {
+                type: 'string',
+                enum: ['option-1', 'option-2', 'option-3'],
+              },
+            },
+          },
+        },
+      },
+      {
+        if: {
+          properties: {
+            select: { const: 'option-2' },
+          },
+        },
+        then: {
+          properties: {
+            multi: {
+              type: 'array',
+              avantos_type: 'checkbox-group',
+              items: {
+                type: 'string',
+                enum: ['option-4', 'option-5', 'option-6'],
+              },
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const data1 = { select: 'option-2' };
+  const resolvedSchema1 = resolveSchema(
+    schema,
+    '#/properties/multi',
+    schema,
+    data1
+  );
+  t.is(
+    (resolvedSchema1 as any).avantos_type,
+    'checkbox-group',
+    'Should resolve to checkbox-group when select=option-2'
+  );
+  t.deepEqual(
+    (resolvedSchema1 as any).items.enum,
+    ['option-4', 'option-5', 'option-6'],
+    'Should have correct enum values for option-2'
+  );
+
+  const data2 = { select: 'option-1' };
+  const resolvedSchema2 = resolveSchema(
+    schema,
+    '#/properties/multi',
+    schema,
+    data2
+  );
+  t.is(
+    (resolvedSchema2 as any).avantos_type,
+    'multi-select',
+    'Should resolve to multi-select when select=option-1'
+  );
+  t.deepEqual(
+    (resolvedSchema2 as any).items.enum,
+    ['option-1', 'option-2', 'option-3'],
+    'Should have correct enum values for option-1'
+  );
+
+  const resolvedSchema3 = resolveSchema(schema, '#/properties/multi', schema);
+  t.truthy(resolvedSchema3, 'Should resolve a schema even without currentData');
+  t.is(
+    resolvedSchema3.type,
+    'array',
+    'Should resolve to array type without data (first match)'
+  );
+  t.deepEqual(
+    (resolvedSchema3 as any).items.enum,
+    ['option-1', 'option-2', 'option-3'],
+    'Should have correct enum values for no data (first match)'
+  );
+});
+
 test('resolveData - resolves data with % characters', (t) => {
   const data = {
     'foo%': '123',
