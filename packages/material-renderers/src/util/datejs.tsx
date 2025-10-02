@@ -38,7 +38,8 @@ export const createOnBlurHandler =
       )
     ) {
       handleChange(path, undefined);
-      // don't rerender so user can click the date picker.
+      rerenderChild();
+      // rerender to reset the DatePicker's internal state when field is empty.
     } else if (formatedDate.toString() === 'Invalid Date') {
       handleChange(path, undefined);
       rerenderChild();
