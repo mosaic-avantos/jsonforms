@@ -454,4 +454,3 @@ export const coreReducer: Reducer<JsonFormsCore, CoreActions> = (
       return state;
   }
 };
-

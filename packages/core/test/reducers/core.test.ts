@@ -2462,4 +2462,3 @@ test('Default values should be cleared when fields are hidden by HIDE rule with 
   t.is(initialState.data.checkbox, true, 'checkbox should be present');
   t.is(initialState.data.checkbox2, true, 'checkbox2 should be present');
 });
-
