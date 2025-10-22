@@ -23,8 +23,6 @@
   THE SOFTWARE.
 */
 
-// test
-
 import cloneDeep from 'lodash/cloneDeep';
 import setFp from 'lodash/fp/set';
 import unsetFp from 'lodash/fp/unset';
@@ -143,9 +141,11 @@ const createDynamicSchema = (
   }
 
   let dataChanged = false;
+  let schemaChanged = false;
 
   // Start with references to original objects
   let updatedData = data;
+  let updatedSchema = schema;
 
   const getConditionPath = (
     control: any,
@@ -202,12 +202,25 @@ const createDynamicSchema = (
           // Clear the value (set to undefined)
           updatedData = setFp(key, undefined, updatedData);
         }
+
+        if (!isFieldVisible && schema.properties[key]?.default !== undefined) {
+          if (!schemaChanged) {
+            updatedSchema = {
+              ...schema,
+              properties: { ...schema.properties },
+            } as JsonSchema;
+            schemaChanged = true;
+          }
+          const propertySchema = { ...updatedSchema.properties[key] };
+          delete propertySchema.default;
+          updatedSchema.properties[key] = propertySchema;
+        }
       }
     }
   });
 
   return {
-    schema,
+    schema: updatedSchema,
     updatedData,
   };
 };
@@ -441,3 +454,4 @@ export const coreReducer: Reducer<JsonFormsCore, CoreActions> = (
       return state;
   }
 };
+
