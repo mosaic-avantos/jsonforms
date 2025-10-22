@@ -2375,3 +2375,90 @@ test('HIDE rule without preserveValueOnHide should clear field values when hidde
     'address should be cleared when hidden by HIDE rule'
   );
 });
+
+test('Default values should be cleared when fields are hidden by HIDE rule with AJV useDefaults', (t) => {
+  // Create a schema with fields that have default values
+  const schema = {
+    type: 'object',
+    properties: {
+      checkbox: { type: 'boolean', default: false },
+      shortText: { type: 'string', default: 'wat' },
+      checkbox2: { type: 'boolean', default: false },
+    },
+  };
+
+  // Create a UI schema with HIDE rule for shortText when checkbox is true
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/checkbox',
+        label: 'Checkbox',
+      },
+      {
+        type: 'Control',
+        scope: '#/properties/shortText',
+        label: 'Short Text',
+        rule: {
+          effect: 'HIDE',
+          condition: {
+            scope: '#',
+            schema: {
+              allOf: [
+                {
+                  type: 'object',
+                  required: ['checkbox'],
+                  properties: {
+                    checkbox: {
+                      const: true,
+                    },
+                  },
+                },
+              ],
+            },
+            failWhenUndefined: true,
+          },
+        },
+      },
+      {
+        type: 'Control',
+        scope: '#/properties/checkbox2',
+        label: 'Log Data',
+      },
+    ],
+  };
+
+  // Create AJV with useDefaults: true
+  const ajv = createAjv({ useDefaults: true });
+
+  // Initial data with checkbox true (which should hide shortText)
+  const initialData = {
+    checkbox: true,
+    checkbox2: true,
+  };
+
+  // Create initial state with AJV that has useDefaults: true
+  const initialState = coreReducer(
+    undefined,
+    init(initialData, schema, uischema, { ajv })
+  );
+
+  // Verify that the shortText field is cleared when hidden
+  t.is(
+    initialState.data.shortText,
+    undefined,
+    'shortText should be cleared when hidden by HIDE rule even with AJV useDefaults'
+  );
+
+  // Verify that shortText is not present in the data when it's hidden
+  t.is(
+    initialState.data.shortText,
+    undefined,
+    'shortText should not have default value when hidden by HIDE rule, even with AJV useDefaults'
+  );
+
+  // Verify other fields are present
+  t.is(initialState.data.checkbox, true, 'checkbox should be present');
+  t.is(initialState.data.checkbox2, true, 'checkbox2 should be present');
+});
