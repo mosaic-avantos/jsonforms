@@ -203,7 +203,11 @@ const createDynamicSchema = (
           updatedData = setFp(key, undefined, updatedData);
         }
 
-        if (!isFieldVisible && schema.properties[key]?.default !== undefined) {
+        if (
+          !isFieldVisible &&
+          schema.properties[key]?.default !== undefined &&
+          !hasPreserveValueOnHide(control)
+        ) {
           if (!schemaChanged) {
             updatedSchema = {
               ...schema,

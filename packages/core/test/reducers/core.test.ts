@@ -2462,3 +2462,167 @@ test('Default values should be cleared when fields are hidden by HIDE rule with 
   t.is(initialState.data.checkbox, true, 'checkbox should be present');
   t.is(initialState.data.checkbox2, true, 'checkbox2 should be present');
 });
+
+test('Default values should be preserved in schema when preserveValueOnHide is true', (t) => {
+  // Create a schema with fields that have default values
+  const schema = {
+    type: 'object',
+    properties: {
+      checkbox: { type: 'boolean', default: false },
+      shortText: { type: 'string', default: 'defaultValue' },
+      checkbox2: { type: 'boolean', default: false },
+    },
+  };
+
+  // Create a UI schema with HIDE rule for shortText when checkbox is true, with preserveValueOnHide
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/checkbox',
+        label: 'Checkbox',
+      },
+      {
+        type: 'Control',
+        scope: '#/properties/shortText',
+        label: 'Short Text',
+        rule: {
+          effect: 'HIDE',
+          condition: {
+            scope: '#',
+            schema: {
+              allOf: [
+                {
+                  type: 'object',
+                  required: ['checkbox'],
+                  properties: {
+                    checkbox: {
+                      const: true,
+                    },
+                  },
+                },
+              ],
+            },
+            failWhenUndefined: true,
+          },
+          options: {
+            preserveValueOnHide: true,
+          },
+        },
+      },
+      {
+        type: 'Control',
+        scope: '#/properties/checkbox2',
+        label: 'Log Data',
+      },
+    ],
+  };
+
+  // Initial data with checkbox true (which should hide shortText)
+  const initialData = {
+    checkbox: true,
+    checkbox2: true,
+  };
+
+  // Create initial state
+  const initialState = coreReducer(
+    undefined,
+    init(initialData, schema, uischema)
+  );
+
+  // Verify that the shortText field value is preserved when hidden (due to preserveValueOnHide)
+  t.is(
+    initialState.data.shortText,
+    undefined, // This will be undefined because no value was set initially
+    'shortText should be undefined when no initial value is set'
+  );
+
+  // Verify that the default value is preserved in the schema when preserveValueOnHide is true
+  t.is(
+    initialState.schema.properties?.shortText.default,
+    'defaultValue',
+    'shortText default should be preserved in schema when preserveValueOnHide is true'
+  );
+});
+
+test('Default values should be cleared in schema when preserveValueOnHide is false', (t) => {
+  // Create a schema with fields that have default values
+  const schema = {
+    type: 'object',
+    properties: {
+      checkbox: { type: 'boolean', default: false },
+      shortText: { type: 'string', default: 'defaultValue' },
+      checkbox2: { type: 'boolean', default: false },
+    },
+  };
+
+  // Create a UI schema with HIDE rule for shortText when checkbox is true, without preserveValueOnHide
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/checkbox',
+        label: 'Checkbox',
+      },
+      {
+        type: 'Control',
+        scope: '#/properties/shortText',
+        label: 'Short Text',
+        rule: {
+          effect: 'HIDE',
+          condition: {
+            scope: '#',
+            schema: {
+              allOf: [
+                {
+                  type: 'object',
+                  required: ['checkbox'],
+                  properties: {
+                    checkbox: {
+                      const: true,
+                    },
+                  },
+                },
+              ],
+            },
+            failWhenUndefined: true,
+          },
+          // No preserveValueOnHide option - should clear defaults when hidden
+        },
+      },
+      {
+        type: 'Control',
+        scope: '#/properties/checkbox2',
+        label: 'Log Data',
+      },
+    ],
+  };
+
+  // Initial data with checkbox true (which should hide shortText)
+  const initialData = {
+    checkbox: true,
+    checkbox2: true,
+  };
+
+  // Create initial state
+  const initialState = coreReducer(
+    undefined,
+    init(initialData, schema, uischema)
+  );
+
+  // Verify that the shortText field value is cleared when hidden (no preserveValueOnHide)
+  t.is(
+    initialState.data.shortText,
+    undefined,
+    'shortText should be undefined when hidden without preserveValueOnHide'
+  );
+
+  // Verify that the default value is cleared from the schema when preserveValueOnHide is false
+  t.is(
+    initialState.schema.properties?.shortText.default,
+    undefined,
+    'shortText default should be cleared from schema when preserveValueOnHide is false'
+  );
+});
