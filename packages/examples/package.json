@@ -1,6 +1,6 @@
 {
   "name": "@mosaic-avantos/jsonforms-examples",
-  "version": "3.5.2-alpha.1",
+  "version": "3.5.2-alpha.23",
   "description": "JSON Forms Example Data",
   "repository": "https://github.com/eclipsesource/jsonforms",
   "bugs": "https://github.com/eclipsesource/jsonforms/issues",
@@ -47,8 +47,8 @@
     "lodash": "^4.17.21"
   },
   "peerDependencies": {
-    "@mosaic-avantos/jsonforms-core": "3.5.2-alpha.1",
-    "@mosaic-avantos/jsonforms-react": "3.5.2-alpha.1"
+    "@mosaic-avantos/jsonforms-core": "3.5.2-alpha.23",
+    "@mosaic-avantos/jsonforms-react": "3.5.2-alpha.23"
   },
   "devDependencies": {
     "@mosaic-avantos/jsonforms-core": "workspace:*",
