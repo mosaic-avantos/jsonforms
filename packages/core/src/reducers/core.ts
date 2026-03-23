@@ -267,7 +267,7 @@ const computePopulateValue = (
   sourceValue: any,
   options: PopulateOptions,
   ajv: Ajv
-): { shouldSet: boolean; newValue: any } => {
+): { shouldSet: boolean; newValue: any; selectNoMatch?: boolean } => {
   if (isEmptySourceValue(sourceValue)) {
     return { shouldSet: false, newValue: undefined };
   }
@@ -283,16 +283,21 @@ const computePopulateValue = (
       return { shouldSet: false, newValue: undefined };
     }
 
-    const match = (base as any[]).find((el) => {
-      try {
-        return ajv.validate(where.schema, el) as boolean;
-      } catch (_error) {
-        // Invalid schema or validation error -> no match
-        return false;
-      }
-    });
-    if (match === undefined) {
+    let match: any;
+    try {
+      match = (base as any[]).find(
+        (el) => ajv.validate(where.schema, el) as boolean
+      );
+    } catch (_error) {
+      // Invalid schema or validation error -> no-op, don't clear destination
       return { shouldSet: false, newValue: undefined };
+    }
+    if (match === undefined) {
+      return {
+        shouldSet: false,
+        newValue: undefined,
+        selectNoMatch: true,
+      };
     }
     base = match;
   }
@@ -512,7 +517,7 @@ const applyPopulateRules = (
         continue;
       }
 
-      const { shouldSet, newValue } = computePopulateValue(
+      const { shouldSet, newValue, selectNoMatch } = computePopulateValue(
         nextSource,
         {
           overwrite: true,
@@ -521,6 +526,15 @@ const applyPopulateRules = (
         ajv
       );
       if (!shouldSet) {
+        // Select found no matching element - clear destination when overwrite is true.
+        // Don't clear for valuePath missing or invalid schema (selectNoMatch is not set).
+        if (selectNoMatch && overwrite && currentDest !== undefined) {
+          if (!dataChanged) {
+            updatedData = cloneDeep(updatedData);
+            dataChanged = true;
+          }
+          updatedData = unsetFp(destPath, updatedData);
+        }
         continue;
       }
 

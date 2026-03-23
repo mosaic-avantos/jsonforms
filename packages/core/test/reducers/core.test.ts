@@ -2810,6 +2810,74 @@ test('core reducer - POPULATE rule selects from array via schema and extracts va
   t.is(updatedState.data.mailingState, 'NY');
 });
 
+test('core reducer - POPULATE rule with select clears destination when no match and overwrite is true', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      table: { type: 'array' },
+      ira_custodian_location: { type: 'string' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      { type: 'Control', scope: '#/properties/table' },
+      {
+        type: 'Control',
+        scope: '#/properties/ira_custodian_location',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              from: '#/properties/table',
+              select: {
+                where: {
+                  schema: {
+                    properties: { account_type: { const: 'IRA' } },
+                    required: ['account_type'],
+                    type: 'object',
+                  },
+                },
+              },
+              valuePath: 'custodian.location',
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const initialState = coreReducer(
+    undefined,
+    init(
+      {
+        table: [
+          {
+            account_type: 'IRA',
+            custodian: { custodian: 'Schwab', location: 'New York' },
+          },
+        ],
+        ira_custodian_location: 'New York',
+      },
+      schema,
+      uischema
+    )
+  );
+
+  t.is(initialState.data.ira_custodian_location, 'New York');
+
+  // Change account_type from IRA to Brokerage - select finds no match
+  const updatedState = coreReducer(
+    initialState,
+    update('table.0.account_type', () => 'Brokerage')
+  );
+
+  t.is(updatedState.data.ira_custodian_location, undefined);
+});
+
 test('core reducer - POPULATE rule selects from array via schema (supports pattern/regex)', (t) => {
   const schema = {
     type: 'object',
