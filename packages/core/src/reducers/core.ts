@@ -430,21 +430,36 @@ const applyPopulateRules = (
         continue;
       }
       const pop: PopulateOptions | undefined = rule.options?.populate;
-      if (!pop?.from) {
+      if (!pop) {
+        continue;
+      }
+      const hasFrom = pop.from != null && pop.from !== '';
+      const hasValue = pop.value !== undefined;
+      if ((hasFrom && hasValue) || (!hasFrom && !hasValue)) {
         continue;
       }
 
-      const localFromPath = toDataPath(pop.from);
-      const fromPath =
-        localFromPath && basePath
-          ? composePaths(basePath, localFromPath)
-          : basePath || localFromPath;
-      if (!fromPath) {
-        continue;
+      let prevSource: any;
+      let nextSource: any;
+      let fromPath: string | undefined;
+
+      if (hasValue && !hasFrom) {
+        prevSource = prevData === undefined ? undefined : pop.value;
+        nextSource = pop.value;
+        fromPath = '';
+      } else {
+        const localFromPath = toDataPath(pop.from!);
+        fromPath =
+          localFromPath && basePath
+            ? composePaths(basePath, localFromPath)
+            : basePath || localFromPath;
+        if (!fromPath) {
+          continue;
+        }
+        prevSource = get(prevData, fromPath);
+        nextSource = get(updatedData, fromPath);
       }
 
-      const prevSource = get(prevData, fromPath);
-      const nextSource = get(updatedData, fromPath);
       const sourceChanged = !isEqual(prevSource, nextSource);
 
       const conditionNow = evaluateCondition(
@@ -470,7 +485,12 @@ const applyPopulateRules = (
         continue;
       }
 
-      if (!sourceChanged && !conditionBecameTrue && !conditionBecameFalse) {
+      if (
+        !sourceChanged &&
+        !conditionBecameTrue &&
+        !conditionBecameFalse &&
+        !hasValue
+      ) {
         continue;
       }
 

@@ -127,12 +127,7 @@ export interface PopulateSelectOptions {
   where: PopulateSelectWhere;
 }
 
-export interface PopulateOptions {
-  /**
-   * JSON Pointer to the source schema property (e.g. "#/properties/addresses").
-   * The value will be resolved from form data using the corresponding data path.
-   */
-  from: string;
+interface PopulateOptionsBase {
   /**
    * Optional dotted path to extract from the resolved source value (or selected array element),
    * e.g. "state" or "address.state".
@@ -147,6 +142,31 @@ export interface PopulateOptions {
    */
   overwrite?: boolean;
 }
+
+interface PopulateFromField extends PopulateOptionsBase {
+  /**
+   * JSON Pointer to the source schema property (e.g. "#/properties/addresses").
+   * The value will be resolved from form data using the corresponding data path.
+   */
+  from: string;
+  value?: never;
+}
+
+interface PopulateFromValue extends PopulateOptionsBase {
+  /**
+   * Hardcoded source value. When present, the destination is populated from this
+   * value instead of form data.
+   */
+  value: any;
+  from?: never;
+}
+
+/**
+ * Options for the POPULATE rule effect. Exactly one of `from` or `value` must be
+ * provided: use `from` to populate from a form field, or `value` for a hardcoded
+ * literal.
+ */
+export type PopulateOptions = PopulateFromField | PopulateFromValue;
 
 /**
  * The different rule effects.

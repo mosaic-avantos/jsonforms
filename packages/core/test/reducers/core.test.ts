@@ -2878,6 +2878,195 @@ test('core reducer - POPULATE rule with select clears destination when no match 
   t.is(updatedState.data.ira_custodian_location, undefined);
 });
 
+test('core reducer - POPULATE rule populates from hardcoded value', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      flag: { type: 'boolean' },
+      dest: { type: 'string' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      { type: 'Control', scope: '#/properties/flag' },
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: {
+            type: 'LEAF',
+            scope: '#/properties/flag',
+            expectedValue: true,
+          },
+          options: {
+            populate: { value: 'Default', overwrite: true },
+          },
+        },
+      },
+    ],
+  };
+
+  const initialState = coreReducer(
+    undefined,
+    init({ flag: true, dest: '' }, schema, uischema)
+  );
+
+  t.is(initialState.data.dest, 'Default');
+
+  const clearedState = coreReducer(
+    initialState,
+    updateCore({ flag: false, dest: 'Default' }, schema, uischema)
+  );
+
+  t.is(clearedState.data.dest, undefined);
+});
+
+test('core reducer - POPULATE rule with hardcoded value uses valuePath', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      dest: { type: 'string' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: { a: 1, b: 2 },
+              valuePath: 'b',
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+
+  t.is(state.data.dest, 2);
+});
+
+test('core reducer - POPULATE rule with hardcoded value and overwrite=false does not override', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      dest: { type: 'string' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: { value: 'Hardcoded', overwrite: false },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(
+    undefined,
+    init({ dest: 'Existing' }, schema, uischema)
+  );
+
+  t.is(state.data.dest, 'Existing');
+});
+
+test('core reducer - POPULATE hardcoded value reapplies on updates when condition stays true', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      dest: { type: 'string' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: { value: 'test', overwrite: true },
+          },
+        },
+      },
+    ],
+  };
+
+  const initialState = coreReducer(
+    undefined,
+    init({ dest: '' }, schema, uischema)
+  );
+  t.is(initialState.data.dest, 'test');
+
+  // Simulate user editing destination while condition remains true.
+  // Hardcoded value rules should be reapplied and restore the destination.
+  const updatedState = coreReducer(
+    initialState,
+    update('dest', () => '')
+  );
+
+  t.is(updatedState.data.dest, 'test');
+});
+
+test('core reducer - POPULATE rule with neither from nor value is skipped', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      dest: { type: 'string' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(
+    undefined,
+    init({ dest: 'Kept' }, schema, uischema)
+  );
+
+  t.is(state.data.dest, 'Kept');
+});
+
 test('core reducer - POPULATE rule selects from array via schema (supports pattern/regex)', (t) => {
   const schema = {
     type: 'object',
