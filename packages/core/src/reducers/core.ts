@@ -68,6 +68,7 @@ import {
   Rule,
   RuleEffect,
   PopulateOptions,
+  PopulateTransform,
 } from '../models';
 
 export const initState: JsonFormsCore = {
@@ -307,10 +308,71 @@ const computePopulateValue = (
     if (extracted === undefined) {
       return { shouldSet: false, newValue: undefined };
     }
-    return { shouldSet: true, newValue: extracted };
+    return {
+      shouldSet: true,
+      newValue: applyPopulateTransforms(extracted, options.transforms),
+    };
   }
 
-  return { shouldSet: true, newValue: base };
+  return {
+    shouldSet: true,
+    newValue: applyPopulateTransforms(base, options.transforms),
+  };
+};
+
+const applyPopulateTransforms = (
+  value: any,
+  transforms?: PopulateTransform[]
+): any => {
+  if (!transforms || transforms.length === 0) {
+    return value;
+  }
+
+  let current = value;
+
+  for (const t of transforms) {
+    if (t.type === 'dateOnly') {
+      if (current instanceof Date) {
+        current = current.toISOString().slice(0, 10);
+        continue;
+      }
+      if (typeof current === 'string') {
+        if (current.includes('T')) {
+          current = current.split('T')[0];
+          continue;
+        }
+        const parsed = new Date(current);
+        if (!Number.isNaN(parsed.getTime())) {
+          current = parsed.toISOString().slice(0, 10);
+        }
+      }
+      continue;
+    }
+
+    if (typeof current !== 'string') {
+      continue;
+    }
+
+    if (t.type === 'capitalizeFirst') {
+      current =
+        current.length === 0
+          ? current
+          : current.charAt(0).toUpperCase() + current.slice(1);
+      continue;
+    }
+
+    if (t.type === 'firstChar') {
+      current = current.length === 0 ? current : current.charAt(0);
+      continue;
+    }
+
+    if (t.type === 'last4') {
+      current = current.length <= 4 ? current : current.slice(-4);
+      continue;
+    }
+  }
+
+  return current;
 };
 
 const getParentPath = (path: string): string => {

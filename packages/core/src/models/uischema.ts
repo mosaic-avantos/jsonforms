@@ -127,12 +127,23 @@ export interface PopulateSelectOptions {
   where: PopulateSelectWhere;
 }
 
+export type PopulateTransform =
+  | { type: 'capitalizeFirst' }
+  | { type: 'firstChar' }
+  | { type: 'last4' }
+  | { type: 'dateOnly' };
+
 interface PopulateOptionsBase {
   /**
    * Optional dotted path to extract from the resolved source value (or selected array element),
    * e.g. "state" or "address.state".
    */
   valuePath?: string;
+  /**
+   * Optional transforms to apply to the resolved value after `select` + `valuePath`.
+   * Applied in order.
+   */
+  transforms?: PopulateTransform[];
   /**
    * If the source resolves to an array, optionally select a single element before extracting.
    */

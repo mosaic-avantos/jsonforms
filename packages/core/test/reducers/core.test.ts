@@ -3032,6 +3032,216 @@ test('core reducer - POPULATE hardcoded value reapplies on updates when conditio
   t.is(updatedState.data.dest, 'test');
 });
 
+test('core reducer - POPULATE transforms: capitalizeFirst', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'string' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: 'hello',
+              transforms: [{ type: 'capitalizeFirst' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+  t.is(state.data.dest, 'Hello');
+});
+
+test('core reducer - POPULATE transforms: firstChar', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'string' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: 'hello',
+              transforms: [{ type: 'firstChar' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+  t.is(state.data.dest, 'h');
+});
+
+test('core reducer - POPULATE transforms: last4', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'string' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: '123456789',
+              transforms: [{ type: 'last4' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+  t.is(state.data.dest, '6789');
+});
+
+test('core reducer - POPULATE transforms: dateOnly (ISO string)', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'string' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: '2026-03-30T14:05:00Z',
+              transforms: [{ type: 'dateOnly' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+  t.is(state.data.dest, '2026-03-30');
+});
+
+test('core reducer - POPULATE transforms: dateOnly (Date object)', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'string' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: new Date('2026-03-30T14:05:00Z'),
+              transforms: [{ type: 'dateOnly' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+  t.is(state.data.dest, '2026-03-30');
+});
+
+test('core reducer - POPULATE transforms: chaining', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'string' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: 'hello',
+              transforms: [{ type: 'capitalizeFirst' }, { type: 'last4' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+  t.is(state.data.dest, 'ello');
+});
+
+test('core reducer - POPULATE transforms: non-string values are no-op', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'number' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: 123,
+              transforms: [{ type: 'capitalizeFirst' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: 0 }, schema, uischema));
+  t.is(state.data.dest, 123);
+});
+
 test('core reducer - POPULATE rule with neither from nor value is skipped', (t) => {
   const schema = {
     type: 'object',
