@@ -68,6 +68,7 @@ import {
   Rule,
   RuleEffect,
   PopulateOptions,
+  PopulateTransform,
 } from '../models';
 
 export const initState: JsonFormsCore = {
@@ -267,7 +268,7 @@ const computePopulateValue = (
   sourceValue: any,
   options: PopulateOptions,
   ajv: Ajv
-): { shouldSet: boolean; newValue: any } => {
+): { shouldSet: boolean; newValue: any; selectNoMatch?: boolean } => {
   if (isEmptySourceValue(sourceValue)) {
     return { shouldSet: false, newValue: undefined };
   }
@@ -283,16 +284,21 @@ const computePopulateValue = (
       return { shouldSet: false, newValue: undefined };
     }
 
-    const match = (base as any[]).find((el) => {
-      try {
-        return ajv.validate(where.schema, el) as boolean;
-      } catch (_error) {
-        // Invalid schema or validation error -> no match
-        return false;
-      }
-    });
-    if (match === undefined) {
+    let match: any;
+    try {
+      match = (base as any[]).find(
+        (el) => ajv.validate(where.schema, el) as boolean
+      );
+    } catch (_error) {
+      // Invalid schema or validation error -> no-op, don't clear destination
       return { shouldSet: false, newValue: undefined };
+    }
+    if (match === undefined) {
+      return {
+        shouldSet: false,
+        newValue: undefined,
+        selectNoMatch: true,
+      };
     }
     base = match;
   }
@@ -302,10 +308,71 @@ const computePopulateValue = (
     if (extracted === undefined) {
       return { shouldSet: false, newValue: undefined };
     }
-    return { shouldSet: true, newValue: extracted };
+    return {
+      shouldSet: true,
+      newValue: applyPopulateTransforms(extracted, options.transforms),
+    };
   }
 
-  return { shouldSet: true, newValue: base };
+  return {
+    shouldSet: true,
+    newValue: applyPopulateTransforms(base, options.transforms),
+  };
+};
+
+const applyPopulateTransforms = (
+  value: any,
+  transforms?: PopulateTransform[]
+): any => {
+  if (!transforms || transforms.length === 0) {
+    return value;
+  }
+
+  let current = value;
+
+  for (const t of transforms) {
+    if (t.type === 'dateOnly') {
+      if (current instanceof Date) {
+        current = current.toISOString().slice(0, 10);
+        continue;
+      }
+      if (typeof current === 'string') {
+        if (current.includes('T')) {
+          current = current.split('T')[0];
+          continue;
+        }
+        const parsed = new Date(current);
+        if (!Number.isNaN(parsed.getTime())) {
+          current = parsed.toISOString().slice(0, 10);
+        }
+      }
+      continue;
+    }
+
+    if (typeof current !== 'string') {
+      continue;
+    }
+
+    if (t.type === 'capitalizeFirst') {
+      current =
+        current.length === 0
+          ? current
+          : current.charAt(0).toUpperCase() + current.slice(1);
+      continue;
+    }
+
+    if (t.type === 'firstChar') {
+      current = current.length === 0 ? current : current.charAt(0);
+      continue;
+    }
+
+    if (t.type === 'last4') {
+      current = current.length <= 4 ? current : current.slice(-4);
+      continue;
+    }
+  }
+
+  return current;
 };
 
 const getParentPath = (path: string): string => {
@@ -425,21 +492,36 @@ const applyPopulateRules = (
         continue;
       }
       const pop: PopulateOptions | undefined = rule.options?.populate;
-      if (!pop?.from) {
+      if (!pop) {
+        continue;
+      }
+      const hasFrom = pop.from != null && pop.from !== '';
+      const hasValue = pop.value !== undefined;
+      if ((hasFrom && hasValue) || (!hasFrom && !hasValue)) {
         continue;
       }
 
-      const localFromPath = toDataPath(pop.from);
-      const fromPath =
-        localFromPath && basePath
-          ? composePaths(basePath, localFromPath)
-          : basePath || localFromPath;
-      if (!fromPath) {
-        continue;
+      let prevSource: any;
+      let nextSource: any;
+      let fromPath: string | undefined;
+
+      if (hasValue && !hasFrom) {
+        prevSource = prevData === undefined ? undefined : pop.value;
+        nextSource = pop.value;
+        fromPath = '';
+      } else {
+        const localFromPath = toDataPath(pop.from!);
+        fromPath =
+          localFromPath && basePath
+            ? composePaths(basePath, localFromPath)
+            : basePath || localFromPath;
+        if (!fromPath) {
+          continue;
+        }
+        prevSource = get(prevData, fromPath);
+        nextSource = get(updatedData, fromPath);
       }
 
-      const prevSource = get(prevData, fromPath);
-      const nextSource = get(updatedData, fromPath);
       const sourceChanged = !isEqual(prevSource, nextSource);
 
       const conditionNow = evaluateCondition(
@@ -465,7 +547,12 @@ const applyPopulateRules = (
         continue;
       }
 
-      if (!sourceChanged && !conditionBecameTrue && !conditionBecameFalse) {
+      if (
+        !sourceChanged &&
+        !conditionBecameTrue &&
+        !conditionBecameFalse &&
+        !hasValue
+      ) {
         continue;
       }
 
@@ -512,7 +599,7 @@ const applyPopulateRules = (
         continue;
       }
 
-      const { shouldSet, newValue } = computePopulateValue(
+      const { shouldSet, newValue, selectNoMatch } = computePopulateValue(
         nextSource,
         {
           overwrite: true,
@@ -521,6 +608,15 @@ const applyPopulateRules = (
         ajv
       );
       if (!shouldSet) {
+        // Select found no matching element - clear destination when overwrite is true.
+        // Don't clear for valuePath missing or invalid schema (selectNoMatch is not set).
+        if (selectNoMatch && overwrite && currentDest !== undefined) {
+          if (!dataChanged) {
+            updatedData = cloneDeep(updatedData);
+            dataChanged = true;
+          }
+          updatedData = unsetFp(destPath, updatedData);
+        }
         continue;
       }
 

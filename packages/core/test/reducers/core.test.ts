@@ -2810,6 +2810,473 @@ test('core reducer - POPULATE rule selects from array via schema and extracts va
   t.is(updatedState.data.mailingState, 'NY');
 });
 
+test('core reducer - POPULATE rule with select clears destination when no match and overwrite is true', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      table: { type: 'array' },
+      ira_custodian_location: { type: 'string' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      { type: 'Control', scope: '#/properties/table' },
+      {
+        type: 'Control',
+        scope: '#/properties/ira_custodian_location',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              from: '#/properties/table',
+              select: {
+                where: {
+                  schema: {
+                    properties: { account_type: { const: 'IRA' } },
+                    required: ['account_type'],
+                    type: 'object',
+                  },
+                },
+              },
+              valuePath: 'custodian.location',
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const initialState = coreReducer(
+    undefined,
+    init(
+      {
+        table: [
+          {
+            account_type: 'IRA',
+            custodian: { custodian: 'Schwab', location: 'New York' },
+          },
+        ],
+        ira_custodian_location: 'New York',
+      },
+      schema,
+      uischema
+    )
+  );
+
+  t.is(initialState.data.ira_custodian_location, 'New York');
+
+  // Change account_type from IRA to Brokerage - select finds no match
+  const updatedState = coreReducer(
+    initialState,
+    update('table.0.account_type', () => 'Brokerage')
+  );
+
+  t.is(updatedState.data.ira_custodian_location, undefined);
+});
+
+test('core reducer - POPULATE rule populates from hardcoded value', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      flag: { type: 'boolean' },
+      dest: { type: 'string' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      { type: 'Control', scope: '#/properties/flag' },
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: {
+            type: 'LEAF',
+            scope: '#/properties/flag',
+            expectedValue: true,
+          },
+          options: {
+            populate: { value: 'Default', overwrite: true },
+          },
+        },
+      },
+    ],
+  };
+
+  const initialState = coreReducer(
+    undefined,
+    init({ flag: true, dest: '' }, schema, uischema)
+  );
+
+  t.is(initialState.data.dest, 'Default');
+
+  const clearedState = coreReducer(
+    initialState,
+    updateCore({ flag: false, dest: 'Default' }, schema, uischema)
+  );
+
+  t.is(clearedState.data.dest, undefined);
+});
+
+test('core reducer - POPULATE rule with hardcoded value uses valuePath', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      dest: { type: 'string' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: { a: 1, b: 2 },
+              valuePath: 'b',
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+
+  t.is(state.data.dest, 2);
+});
+
+test('core reducer - POPULATE rule with hardcoded value and overwrite=false does not override', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      dest: { type: 'string' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: { value: 'Hardcoded', overwrite: false },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(
+    undefined,
+    init({ dest: 'Existing' }, schema, uischema)
+  );
+
+  t.is(state.data.dest, 'Existing');
+});
+
+test('core reducer - POPULATE hardcoded value reapplies on updates when condition stays true', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      dest: { type: 'string' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: { value: 'test', overwrite: true },
+          },
+        },
+      },
+    ],
+  };
+
+  const initialState = coreReducer(
+    undefined,
+    init({ dest: '' }, schema, uischema)
+  );
+  t.is(initialState.data.dest, 'test');
+
+  // Simulate user editing destination while condition remains true.
+  // Hardcoded value rules should be reapplied and restore the destination.
+  const updatedState = coreReducer(
+    initialState,
+    update('dest', () => '')
+  );
+
+  t.is(updatedState.data.dest, 'test');
+});
+
+test('core reducer - POPULATE transforms: capitalizeFirst', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'string' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: 'hello',
+              transforms: [{ type: 'capitalizeFirst' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+  t.is(state.data.dest, 'Hello');
+});
+
+test('core reducer - POPULATE transforms: firstChar', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'string' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: 'hello',
+              transforms: [{ type: 'firstChar' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+  t.is(state.data.dest, 'h');
+});
+
+test('core reducer - POPULATE transforms: last4', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'string' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: '123456789',
+              transforms: [{ type: 'last4' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+  t.is(state.data.dest, '6789');
+});
+
+test('core reducer - POPULATE transforms: dateOnly (ISO string)', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'string' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: '2026-03-30T14:05:00Z',
+              transforms: [{ type: 'dateOnly' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+  t.is(state.data.dest, '2026-03-30');
+});
+
+test('core reducer - POPULATE transforms: dateOnly (Date object)', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'string' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: new Date('2026-03-30T14:05:00Z'),
+              transforms: [{ type: 'dateOnly' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+  t.is(state.data.dest, '2026-03-30');
+});
+
+test('core reducer - POPULATE transforms: chaining', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'string' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: 'hello',
+              transforms: [{ type: 'capitalizeFirst' }, { type: 'last4' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: '' }, schema, uischema));
+  t.is(state.data.dest, 'ello');
+});
+
+test('core reducer - POPULATE transforms: non-string values are no-op', (t) => {
+  const schema = {
+    type: 'object',
+    properties: { dest: { type: 'number' } },
+  };
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              value: 123,
+              transforms: [{ type: 'capitalizeFirst' }],
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ dest: 0 }, schema, uischema));
+  t.is(state.data.dest, 123);
+});
+
+test('core reducer - POPULATE rule with neither from nor value is skipped', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      dest: { type: 'string' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: {
+              overwrite: true,
+            },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(
+    undefined,
+    init({ dest: 'Kept' }, schema, uischema)
+  );
+
+  t.is(state.data.dest, 'Kept');
+});
+
 test('core reducer - POPULATE rule selects from array via schema (supports pattern/regex)', (t) => {
   const schema = {
     type: 'object',
