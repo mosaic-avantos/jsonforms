@@ -4590,11 +4590,7 @@ test('core reducer - POPULATE coerces hardcoded string to number inside array ro
 
   const initialState = coreReducer(
     undefined,
-    init(
-      { addresses: [{ flag: false }] },
-      schema,
-      uischema
-    )
+    init({ addresses: [{ flag: false }] }, schema, uischema)
   );
 
   const updatedState = coreReducer(
