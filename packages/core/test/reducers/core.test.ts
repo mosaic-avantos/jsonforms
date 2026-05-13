@@ -4276,3 +4276,332 @@ test('core reducer - POPULATE updates row on source change with dot index path',
 
   t.is(updatedState.data.addresses[0].dest, 'test');
 });
+
+test('core reducer - POPULATE coerces hardcoded string value to number for number destination', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      flag: { type: 'boolean' },
+      dest: { type: 'number' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      { type: 'Control', scope: '#/properties/flag' },
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: {
+            type: 'LEAF',
+            scope: '#/properties/flag',
+            expectedValue: true,
+          },
+          options: {
+            populate: { value: '100', overwrite: true },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ flag: true }, schema, uischema));
+
+  t.is(state.data.dest, 100);
+  t.is(typeof state.data.dest, 'number');
+});
+
+test('core reducer - POPULATE coerces hardcoded string value to integer for integer destination', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      flag: { type: 'boolean' },
+      dest: { type: 'integer' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      { type: 'Control', scope: '#/properties/flag' },
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: {
+            type: 'LEAF',
+            scope: '#/properties/flag',
+            expectedValue: true,
+          },
+          options: {
+            populate: { value: '42', overwrite: true },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ flag: true }, schema, uischema));
+
+  t.is(state.data.dest, 42);
+  t.is(typeof state.data.dest, 'number');
+});
+
+test('core reducer - POPULATE leaves non-numeric string unchanged for number destination', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      flag: { type: 'boolean' },
+      dest: { type: 'number' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      { type: 'Control', scope: '#/properties/flag' },
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: {
+            type: 'LEAF',
+            scope: '#/properties/flag',
+            expectedValue: true,
+          },
+          options: {
+            populate: { value: 'abc', overwrite: true },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ flag: true }, schema, uischema));
+
+  t.is(state.data.dest, 'abc');
+});
+
+test('core reducer - POPULATE leaves empty string unchanged for number destination', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      flag: { type: 'boolean' },
+      dest: { type: 'number' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      { type: 'Control', scope: '#/properties/flag' },
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: {
+            type: 'LEAF',
+            scope: '#/properties/flag',
+            expectedValue: true,
+          },
+          options: {
+            populate: { value: '', overwrite: true },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ flag: true }, schema, uischema));
+
+  // Empty string is treated as an empty source value, so destination is cleared rather than coerced to 0.
+  t.is(state.data.dest, undefined);
+});
+
+test('core reducer - POPULATE rejects non-integer string for integer-only destination', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      flag: { type: 'boolean' },
+      dest: { type: 'integer' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      { type: 'Control', scope: '#/properties/flag' },
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: {
+            type: 'LEAF',
+            scope: '#/properties/flag',
+            expectedValue: true,
+          },
+          options: {
+            populate: { value: '100.5', overwrite: true },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ flag: true }, schema, uischema));
+
+  t.is(state.data.dest, '100.5');
+});
+
+test('core reducer - POPULATE coerces hardcoded string to boolean', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      flag: { type: 'boolean' },
+      dest: { type: 'boolean' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      { type: 'Control', scope: '#/properties/flag' },
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: {
+            type: 'LEAF',
+            scope: '#/properties/flag',
+            expectedValue: true,
+          },
+          options: {
+            populate: { value: 'true', overwrite: true },
+          },
+        },
+      },
+    ],
+  };
+
+  const state = coreReducer(undefined, init({ flag: true }, schema, uischema));
+
+  t.is(state.data.dest, true);
+});
+
+test('core reducer - POPULATE coerces string source field to number destination via from', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      src: { type: 'string' },
+      dest: { type: 'number' },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      { type: 'Control', scope: '#/properties/src' },
+      {
+        type: 'Control',
+        scope: '#/properties/dest',
+        rule: {
+          effect: 'POPULATE',
+          condition: { scope: '#', schema: { type: 'object' } },
+          options: {
+            populate: { from: '#/properties/src', overwrite: true },
+          },
+        },
+      },
+    ],
+  };
+
+  const initialState = coreReducer(
+    undefined,
+    init({ src: '7' }, schema, uischema)
+  );
+  t.is(initialState.data.dest, 7);
+  t.is(typeof initialState.data.dest, 'number');
+
+  const updatedState = coreReducer(
+    initialState,
+    update('src', () => '99')
+  );
+  t.is(updatedState.data.dest, 99);
+  t.is(typeof updatedState.data.dest, 'number');
+});
+
+test('core reducer - POPULATE coerces hardcoded string to number inside array row detail', (t) => {
+  const schema = {
+    type: 'object',
+    properties: {
+      addresses: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            flag: { type: 'boolean' },
+            dest: { type: 'number' },
+          },
+        },
+      },
+    },
+  };
+
+  const uischema = {
+    type: 'VerticalLayout',
+    elements: [
+      {
+        type: 'Control',
+        scope: '#/properties/addresses',
+        options: {
+          detail: {
+            type: 'VerticalLayout',
+            elements: [
+              { type: 'Control', scope: '#/properties/flag' },
+              {
+                type: 'Control',
+                scope: '#/properties/dest',
+                rule: {
+                  effect: 'POPULATE',
+                  condition: {
+                    type: 'LEAF',
+                    scope: '#/properties/flag',
+                    expectedValue: true,
+                  },
+                  options: {
+                    populate: { value: '7', overwrite: true },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+    ],
+  };
+
+  const initialState = coreReducer(
+    undefined,
+    init(
+      { addresses: [{ flag: false }] },
+      schema,
+      uischema
+    )
+  );
+
+  const updatedState = coreReducer(
+    initialState,
+    update('addresses.0.flag', () => true)
+  );
+
+  t.is(updatedState.data.addresses[0].dest, 7);
+  t.is(typeof updatedState.data.addresses[0].dest, 'number');
+});

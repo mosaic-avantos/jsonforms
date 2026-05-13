@@ -60,6 +60,7 @@ import {
   isLayout,
   composePaths,
   toDataPath,
+  resolveSchema,
 } from '../util';
 import { JsonSchema } from '../models/jsonSchema';
 import {
@@ -264,6 +265,70 @@ const pathAffects = (changedPath: string, targetPath: string): boolean => {
   );
 };
 
+const resolveSchemaForScope = (
+  root: JsonSchema | undefined,
+  scope: string | undefined
+): JsonSchema | undefined => {
+  if (!root || !scope || typeof scope !== 'string' || !scope.startsWith('#')) {
+    return undefined;
+  }
+  const path = scope.slice(1);
+  return resolveSchema(root, path, root);
+};
+
+// Coerce a value to match the destination schema's declared type when the
+// types of source and destination differ in a safe, well-defined way.
+// Returns the value unchanged when:
+//   - the subschema is missing or has no type
+//   - the value already matches an allowed type
+//   - the conversion is ambiguous or lossy
+// Never throws; uncoerced mismatches surface as normal Ajv validation errors.
+const coerceToSchemaType = (
+  value: any,
+  subschema: JsonSchema | undefined
+): any => {
+  if (value === undefined || value === null) return value;
+  if (!subschema || !(subschema as any).type) return value;
+
+  const types: string[] = Array.isArray((subschema as any).type)
+    ? (subschema as any).type
+    : [(subschema as any).type];
+  const actual = typeof value;
+
+  if (
+    (actual === 'number' &&
+      (types.includes('number') ||
+        (types.includes('integer') && Number.isInteger(value)))) ||
+    (actual === 'string' && types.includes('string')) ||
+    (actual === 'boolean' && types.includes('boolean'))
+  ) {
+    return value;
+  }
+
+  if (
+    actual === 'string' &&
+    (types.includes('number') || types.includes('integer'))
+  ) {
+    const trimmed = (value as string).trim();
+    if (trimmed === '') return value;
+    const n = Number(trimmed);
+    if (!Number.isFinite(n)) return value;
+    if (types.includes('integer') && !Number.isInteger(n)) {
+      return types.includes('number') ? n : value;
+    }
+    return n;
+  }
+
+  if (actual === 'string' && types.includes('boolean')) {
+    const v = (value as string).trim().toLowerCase();
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+    return value;
+  }
+
+  return value;
+};
+
 const computePopulateValue = (
   sourceValue: any,
   options: PopulateOptions,
@@ -450,7 +515,8 @@ const applyPopulateRules = (
   nextData: any,
   uischema: UISchemaElement,
   changedPath: string,
-  ajv: Ajv
+  ajv: Ajv,
+  rootSchema?: JsonSchema
 ): any => {
   if (!uischema || changedPath === undefined || changedPath === null) {
     return nextData;
@@ -459,7 +525,12 @@ const applyPopulateRules = (
   let updatedData = nextData;
   let dataChanged = false;
 
-  const applyToControl = (control: any, basePath: string) => {
+  const applyToControl = (
+    control: any,
+    basePath: string,
+    currentSchema: JsonSchema | undefined
+  ) => {
+    const destSubschema = resolveSchemaForScope(currentSchema, control.scope);
     const rules: Rule[] = Array.isArray(control.rule)
       ? control.rule
       : control.rule
@@ -625,7 +696,12 @@ const applyPopulateRules = (
         continue;
       }
 
-      if (isEqual(currentDest, newValue)) {
+      const coercedValue =
+        newValue === undefined
+          ? newValue
+          : coerceToSchemaType(newValue, destSubschema);
+
+      if (isEqual(currentDest, coercedValue)) {
         continue;
       }
 
@@ -634,18 +710,24 @@ const applyPopulateRules = (
         dataChanged = true;
       }
 
-      if (newValue === undefined) {
+      if (coercedValue === undefined) {
         updatedData = unsetFp(destPath, updatedData);
       } else {
-        updatedData = setFp(destPath, newValue, updatedData);
+        updatedData = setFp(destPath, coercedValue, updatedData);
       }
     }
   };
 
-  const traverse = (element: UISchemaElement, basePath: string) => {
+  const traverse = (
+    element: UISchemaElement,
+    basePath: string,
+    currentSchema: JsonSchema | undefined
+  ) => {
     if (isLayout(element)) {
       if (Array.isArray(element.elements)) {
-        element.elements.forEach((child) => traverse(child, basePath));
+        element.elements.forEach((child) =>
+          traverse(child, basePath, currentSchema)
+        );
       }
       return;
     }
@@ -654,7 +736,7 @@ const applyPopulateRules = (
     }
 
     const control: any = element;
-    applyToControl(control, basePath);
+    applyToControl(control, basePath, currentSchema);
 
     const detail = control.options?.detail;
     if (detail) {
@@ -668,16 +750,21 @@ const applyPopulateRules = (
         return;
       }
 
+      const arraySchema = resolveSchemaForScope(currentSchema, control.scope);
+      const rowSchema = (arraySchema as any)?.items as JsonSchema | undefined;
+
       const detailPaths = getDetailBasePaths(
         arrayPath,
         changedPath,
         updatedData
       );
-      detailPaths.forEach((detailPath) => traverse(detail, detailPath));
+      detailPaths.forEach((detailPath) =>
+        traverse(detail, detailPath, rowSchema)
+      );
     }
   };
 
-  traverse(uischema, '');
+  traverse(uischema, '', rootSchema);
 
   return updatedData;
 };
@@ -696,7 +783,8 @@ export const coreReducer: Reducer<JsonFormsCore, CoreActions> = (
         action.data,
         action.uischema,
         '',
-        thisAjv
+        thisAjv,
+        action.schema
       );
 
       // Create dynamic schema with UI-based required fields
@@ -737,7 +825,8 @@ export const coreReducer: Reducer<JsonFormsCore, CoreActions> = (
         action.data,
         action.uischema,
         '',
-        thisAjv
+        thisAjv,
+        action.schema
       );
 
       // Create dynamic schema with UI-based required fields
@@ -843,7 +932,8 @@ export const coreReducer: Reducer<JsonFormsCore, CoreActions> = (
           result,
           state.uischema,
           '',
-          state.ajv
+          state.ajv,
+          state.schema
         );
 
         // Create dynamic schema with UI-based required fields and clear hidden fields
@@ -883,7 +973,8 @@ export const coreReducer: Reducer<JsonFormsCore, CoreActions> = (
           newState,
           state.uischema,
           action.path,
-          state.ajv
+          state.ajv,
+          state.schema
         );
 
         // Create dynamic schema with UI-based required fields and clear hidden fields
