@@ -438,6 +438,176 @@ describe('Material date time control', () => {
     input.simulate('blur', input);
     expect(onChangeData.data.foo).toBe('2005/12/10 11:22 am');
   });
+
+  it('should not remount the picker when blurring an empty field', () => {
+    const core = initCore(schema, uischema, {});
+    wrapper = mount(
+      <JsonFormsStateProvider
+        initState={{ renderers: materialRenderers, core }}
+      >
+        <MaterialDateTimeControl schema={schema} uischema={uischema} />
+      </JsonFormsStateProvider>
+    );
+
+    const inputBefore = wrapper.find('input').first().getDOMNode();
+    wrapper.find('input').first().simulate('blur');
+    wrapper.update();
+
+    // A remount replaces the input and destroys the sibling open-picker button,
+    // which is the element the browser focuses next when tabbing out.
+    expect(wrapper.find('input').first().getDOMNode()).toBe(inputBefore);
+  });
+
+  it('should remount the picker when clearing a filled field', () => {
+    const core = initCore(schema, uischema, data);
+    wrapper = mount(
+      <JsonFormsStateProvider
+        initState={{ renderers: materialRenderers, core }}
+      >
+        <MaterialDateTimeControl schema={schema} uischema={uischema} />
+      </JsonFormsStateProvider>
+    );
+
+    const input = wrapper.find('input').first();
+    const inputBefore = input.getDOMNode();
+    (inputBefore as HTMLInputElement).value = '';
+    input.simulate('blur');
+    wrapper.update();
+
+    // The reset is still required here to clear the picker's internal state.
+    expect(wrapper.find('input').first().getDOMNode()).not.toBe(inputBefore);
+  });
+
+  it('should restore focus when clearing an invalid field remounts the picker', () => {
+    const core = initCore(schema, uischema, data);
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    wrapper = mount(
+      <JsonFormsStateProvider
+        initState={{ renderers: materialRenderers, core }}
+      >
+        <MaterialDateTimeControl schema={schema} uischema={uischema} />
+      </JsonFormsStateProvider>,
+      { attachTo: container }
+    );
+
+    const input = wrapper.find('input').first();
+    const inputNode = input.getDOMNode() as HTMLInputElement;
+    const buttonBefore = inputNode.parentElement?.querySelector('button');
+    expect(buttonBefore).toBeTruthy();
+
+    // Invalid input still has to reset the picker, which destroys the button the
+    // browser is moving focus to when tabbing out of the field.
+    inputNode.value = 'not-a-date';
+    input.simulate('blur', { relatedTarget: buttonBefore });
+    wrapper.update();
+
+    const buttonAfter = (
+      wrapper.find('input').first().getDOMNode() as HTMLInputElement
+    ).parentElement?.querySelector('button');
+    expect(buttonAfter).toBeTruthy();
+    expect(buttonAfter).not.toBe(buttonBefore);
+    expect(document.activeElement).toBe(buttonAfter);
+  });
+
+  it('should restore focus when a partially typed date remounts the picker', () => {
+    const core = initCore(schema, uischema, {});
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    wrapper = mount(
+      <JsonFormsStateProvider
+        initState={{ renderers: materialRenderers, core }}
+      >
+        <MaterialDateTimeControl schema={schema} uischema={uischema} />
+      </JsonFormsStateProvider>,
+      { attachTo: container }
+    );
+
+    const input = wrapper.find('input').first();
+    const inputNode = input.getDOMNode() as HTMLInputElement;
+    const buttonBefore = inputNode.parentElement?.querySelector('button');
+
+    // Only the year section was filled in. That does not parse, so the picker
+    // is reset even though the field started out empty.
+    inputNode.value = '1980-MM-DD HH:mm';
+    input.simulate('blur', { relatedTarget: buttonBefore });
+    wrapper.update();
+
+    const buttonAfter = (
+      wrapper.find('input').first().getDOMNode() as HTMLInputElement
+    ).parentElement?.querySelector('button');
+    expect(buttonAfter).toBeTruthy();
+    expect(buttonAfter).not.toBe(buttonBefore);
+    expect(document.activeElement).toBe(buttonAfter);
+  });
+
+  it('should not restore focus when an invalid field is blurred past the control', () => {
+    const core = initCore(schema, uischema, data);
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const outside = document.createElement('button');
+    document.body.appendChild(outside);
+    wrapper = mount(
+      <JsonFormsStateProvider
+        initState={{ renderers: materialRenderers, core }}
+      >
+        <MaterialDateTimeControl schema={schema} uischema={uischema} />
+      </JsonFormsStateProvider>,
+      { attachTo: container }
+    );
+
+    const input = wrapper.find('input').first();
+    const inputNode = input.getDOMNode() as HTMLInputElement;
+    const buttonBefore = inputNode.parentElement?.querySelector('button');
+
+    // Focus went somewhere outside the control, so the remount is not what takes
+    // it away and the control must leave it where the browser put it.
+    outside.focus();
+    inputNode.value = 'not-a-date';
+    input.simulate('blur');
+    wrapper.update();
+
+    const buttonAfter = (
+      wrapper.find('input').first().getDOMNode() as HTMLInputElement
+    ).parentElement?.querySelector('button');
+    expect(buttonAfter).toBeTruthy();
+    expect(buttonAfter).not.toBe(buttonBefore);
+    expect(document.activeElement).toBe(outside);
+
+    document.body.removeChild(outside);
+  });
+
+  it('should not disturb focus when blurring a field with a valid value', () => {
+    const core = initCore(schema, uischema, data);
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    wrapper = mount(
+      <JsonFormsStateProvider
+        initState={{ renderers: materialRenderers, core }}
+      >
+        <MaterialDateTimeControl schema={schema} uischema={uischema} />
+      </JsonFormsStateProvider>,
+      { attachTo: container }
+    );
+
+    const input = wrapper.find('input').first();
+    const inputNode = input.getDOMNode() as HTMLInputElement;
+    const buttonBefore = inputNode.parentElement?.querySelector('button');
+
+    // Emulate the browser having moved focus on to the open picker button.
+    buttonBefore?.focus();
+    input.simulate('blur', { relatedTarget: buttonBefore });
+    wrapper.update();
+
+    // A valid value never resets the picker, so the tab target survives.
+    expect(wrapper.find('input').first().getDOMNode()).toBe(inputNode);
+    expect(
+      (
+        wrapper.find('input').first().getDOMNode() as HTMLInputElement
+      ).parentElement?.querySelector('button')
+    ).toBe(buttonBefore);
+    expect(document.activeElement).toBe(buttonBefore);
+  });
 });
 
 it('should render with a placeholder', () => {

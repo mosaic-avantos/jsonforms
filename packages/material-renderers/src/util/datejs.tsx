@@ -25,12 +25,20 @@ export const createOnBlurHandler =
     handleChange: (path: string, value: any) => void,
     format: string,
     saveFormat: string,
-    rerenderChild: () => void,
-    onBlur: () => void
+    rerenderChild: (restoreFocus?: boolean) => void,
+    onBlur: () => void,
+    data?: any
   ) =>
   (e: React.FocusEvent<HTMLTextAreaElement | HTMLInputElement, Element>) => {
     const date = dayjs(e.target.value, format);
     const formatedDate = formatDate(date, saveFormat);
+    // The open picker button sits next to the input and is the browser's next
+    // tab stop, so a rerender destroys the element focus is moving to. That
+    // aborts the transfer and drops focus to the document body, and the control
+    // has to put it back afterwards.
+    const losesFocusToRerender = !!(
+      e.relatedTarget && e.target.parentElement?.contains(e.relatedTarget)
+    );
     // Check if the input value is a date/time format string. Initially, a date format is sent when the user clicks the empty field.
     if (
       /^((?:[DMY]{2,4}(?:[-/:\s.]+[DMY]{2,4}){0,2}|\b[DMY]+\b)\s*)?([HhmsAa]+[-/:\s.]+[HhmsAa]+[-/:\s.]*[HhmsAa]*)?$/i.test(
@@ -38,11 +46,15 @@ export const createOnBlurHandler =
       )
     ) {
       handleChange(path, undefined);
-      rerenderChild();
-      // rerender to reset the DatePicker's internal state when field is empty.
+      // Only rerender to reset the DatePicker's internal state when there was a
+      // value to clear. Remounting an already empty field destroys the element
+      // the browser is about to focus, which breaks tabbing out of the field.
+      if (data) {
+        rerenderChild(losesFocusToRerender);
+      }
     } else if (formatedDate.toString() === 'Invalid Date') {
       handleChange(path, undefined);
-      rerenderChild();
+      rerenderChild(losesFocusToRerender);
     } else {
       handleChange(path, formatedDate);
     }

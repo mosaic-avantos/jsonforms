@@ -30,6 +30,7 @@ import { MuiInputText } from '../../src/mui-controls/MuiInputText';
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 import { ControlElement, ControlProps } from '@mosaic-avantos/jsonforms-core';
 import { InputAdornment, OutlinedInput } from '@mui/material';
+import { act } from 'react-dom/test-utils';
 
 Enzyme.configure({ adapter: new Adapter() });
 
@@ -117,5 +118,63 @@ describe('Material text control', () => {
       'display',
       'none'
     );
+  });
+
+  it('keeps the adornment shown when focus moves on to the clear button', () => {
+    jest.useFakeTimers();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    wrapper = mount(createMaterialTextControl(defaultControlProps()), {
+      attachTo: container,
+    });
+
+    wrapper.find('input').first().simulate('focus');
+    wrapper.update();
+
+    const clearButton = wrapper
+      .find('button[aria-label="Clear input field"]')
+      .first()
+      .getDOMNode() as HTMLButtonElement;
+    clearButton.focus();
+
+    // Deliberately no relatedTarget, which is what React 16 reports on blur.
+    // The adornment has to stay shown regardless, or the browser cannot finish
+    // moving focus on to the button.
+    wrapper.find('input').first().simulate('blur');
+    act(() => {
+      jest.runAllTimers();
+    });
+    wrapper.update();
+
+    expect(wrapper.find(InputAdornment).props().style).not.toHaveProperty(
+      'display',
+      'none'
+    );
+    jest.useRealTimers();
+  });
+
+  it('hides the adornment once focus has left the control', () => {
+    jest.useFakeTimers();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    wrapper = mount(createMaterialTextControl(defaultControlProps()), {
+      attachTo: container,
+    });
+
+    wrapper.find('input').first().simulate('focus');
+    wrapper.update();
+
+    // Focus is on the body, i.e. outside the control.
+    wrapper.find('input').first().simulate('blur');
+    act(() => {
+      jest.runAllTimers();
+    });
+    wrapper.update();
+
+    expect(wrapper.find(InputAdornment).props().style).toHaveProperty(
+      'display',
+      'none'
+    );
+    jest.useRealTimers();
   });
 });
