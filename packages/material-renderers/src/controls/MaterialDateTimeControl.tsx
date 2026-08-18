@@ -22,7 +22,13 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
 */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import dayjs from 'dayjs';
 import merge from 'lodash/merge';
 import {
@@ -95,7 +101,23 @@ export const MaterialDateTimeControl = (props: ControlProps) => {
     : null;
   const secondFormHelperText = showDescription && !isValid ? errors : null;
 
-  const updateChild = useCallback(() => setKey((key) => key + 1), []);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const restoreFocus = useRef(false);
+
+  const updateChild = useCallback((rerenderLosesFocus?: boolean) => {
+    restoreFocus.current = !!rerenderLosesFocus;
+    setKey((key) => key + 1);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!restoreFocus.current) {
+      return;
+    }
+    restoreFocus.current = false;
+    // The rerender replaced the open picker button the browser was moving focus
+    // to, so focus its replacement to keep tabbing out of the field working.
+    inputRef.current?.parentElement?.querySelector('button')?.focus();
+  }, [key]);
 
   const onChange = useMemo(
     () => createOnChangeHandler(path, handleChange, saveFormat),
@@ -110,9 +132,10 @@ export const MaterialDateTimeControl = (props: ControlProps) => {
         format,
         saveFormat,
         updateChild,
-        onBlur
+        onBlur,
+        data
       ),
-    [path, handleChange, format, saveFormat, updateChild]
+    [path, handleChange, format, saveFormat, updateChild, data]
   );
   const value = getData(data, saveFormat);
 
@@ -163,6 +186,7 @@ export const MaterialDateTimeControl = (props: ControlProps) => {
           textField: {
             placeholder: appliedUiSchemaOptions?.placeholder,
             id: id + '-input',
+            inputRef,
             required: required && !appliedUiSchemaOptions.hideRequiredAsterisk,
             autoFocus: appliedUiSchemaOptions.focus,
             error: !isValid,

@@ -22,7 +22,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
 */
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
   showAsRequired,
   ControlProps,
@@ -39,6 +39,22 @@ export interface WithInput {
 
 export const MaterialInputControl = (props: ControlProps & WithInput) => {
   const [focused, onFocus, onBlur] = useFocus();
+  const controlRef = useRef<HTMLDivElement>(null);
+
+  // Focus can move between the control's own elements, e.g. on to the clear
+  // button in the input adornment. Treating that as a blur hides the adornment
+  // while the browser is still moving focus into it, which aborts the transfer
+  // and drops focus to the document body. Let focus settle first, then check
+  // where it actually landed. relatedTarget is not usable here because React 16
+  // maps onBlur to the native blur event, which does not carry it.
+  const handleBlur = useCallback(() => {
+    setTimeout(() => {
+      const node = controlRef.current;
+      if (node && !node.contains(document.activeElement)) {
+        onBlur();
+      }
+    }, 0);
+  }, [onBlur]);
   const {
     id,
     description,
@@ -75,9 +91,10 @@ export const MaterialInputControl = (props: ControlProps & WithInput) => {
 
   return (
     <FormControl
+      ref={controlRef}
       fullWidth={!appliedUiSchemaOptions.trim}
       onFocus={onFocus}
-      onBlur={onBlur}
+      onBlur={handleBlur}
       variant={variant}
       id={id}
     >
