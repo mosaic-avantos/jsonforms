@@ -121,6 +121,10 @@ export const MaterialInputControl = (props: ControlProps & WithInput) => {
         id={id + '-input'}
         isValid={isValid}
         visible={visible}
+        // Forwarded, not just used locally for description gating:
+        // avantos-forms text and number inputs gate their clear-button
+        // adornment on this. Dropping the forwarding makes that adornment
+        // hover-only and breaks tabbing from the input on to the clear button.
         focused={focused}
       />
       <FormHelperText error={!isValid && !showDescription}>
